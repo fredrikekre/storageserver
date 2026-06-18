@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -213,6 +214,78 @@ func TestBadPathsReturn404(t *testing.T) {
 		if rr.Code != http.StatusNotFound {
 			t.Errorf("GET %s: got %d, want 404", path, rr.Code)
 		}
+	}
+}
+
+// --- root landing page ---
+
+func TestRootGETReturnsHTML(t *testing.T) {
+	srv := makeServer(t, nil)
+	rr := get(t, srv.routes(), "/", "")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got %d, want 200", rr.Code)
+	}
+	if ct := rr.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/html") {
+		t.Errorf("Content-Type = %q, want text/html...", ct)
+	}
+	if !strings.Contains(rr.Body.String(), "Julia") {
+		t.Errorf("body should mention Julia; got %q", rr.Body.String())
+	}
+}
+
+func TestRootMethodNotAllowed(t *testing.T) {
+	srv := makeServer(t, nil)
+	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete} {
+		req := httptest.NewRequest(method, "/", nil)
+		rr := httptest.NewRecorder()
+		srv.routes().ServeHTTP(rr, req)
+		if rr.Code != http.StatusMethodNotAllowed {
+			t.Errorf("%s /: got %d, want 405", method, rr.Code)
+		}
+	}
+}
+
+func TestRootCatchAllReturns404ForUnknownPaths(t *testing.T) {
+	srv := makeServer(t, nil)
+	for _, path := range []string{"/foo", "/foo/bar", "/random"} {
+		rr := get(t, srv.routes(), path, "")
+		if rr.Code != http.StatusNotFound {
+			t.Errorf("GET %s: got %d, want 404", path, rr.Code)
+		}
+		// Should not be the landing page
+		if strings.Contains(rr.Body.String(), "Julia storage server") {
+			t.Errorf("GET %s leaked landing-page body", path)
+		}
+	}
+}
+
+// TestRootHEADSuppressesBody runs through a real http.Server (not
+// httptest.ResponseRecorder) to verify that Go's net/http drops the body
+// bytes on HEAD while keeping Content-Length set.
+func TestRootHEADSuppressesBody(t *testing.T) {
+	srv := makeServer(t, nil)
+	hs := httptest.NewServer(srv.routes())
+	t.Cleanup(hs.Close)
+
+	req, err := http.NewRequest(http.MethodHead, hs.URL+"/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("got %d, want 200", resp.StatusCode)
+	}
+	if cl := resp.ContentLength; cl != int64(len(rootHTML)) {
+		t.Errorf("Content-Length = %d, want %d", cl, len(rootHTML))
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if len(body) != 0 {
+		t.Errorf("HEAD body should be empty, got %d bytes", len(body))
 	}
 }
 

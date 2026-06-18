@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -76,7 +77,33 @@ func (s *server) routes() http.Handler {
 	mux.HandleFunc("/package/", s.handleResource)
 	mux.HandleFunc("/artifact/", s.handleResource)
 	mux.HandleFunc("/registries", s.handleRegistries)
+	mux.HandleFunc("/", s.handleRoot)
 	return s.logRequests(mux)
+}
+
+const rootHTML = `<!doctype html>
+<html lang=en>
+<meta charset=UTF-8>
+<title>Storage Server</title>
+This is a <a href="https://julialang.org">Julia</a> storage server. It is not meant for browsing but for serving resources required by Julia clients to install packages.
+</html>
+`
+
+// handleRoot serves a small HTML landing page on "/" for accidental browser
+// visitors. ServeMux registers "/" as a catch-all, so we 404 anything that
+// isn't exactly "/" — the more specific routes have already matched real
+// resource paths by the time control reaches here.
+func (s *server) handleRoot(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	io.WriteString(w, rootHTML)
 }
 
 // encodingQ returns the effective q value for enc in an Accept-Encoding header.
