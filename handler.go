@@ -33,6 +33,23 @@ func (r *statusRecorder) WriteHeader(status int) {
 	r.ResponseWriter.WriteHeader(status)
 }
 
+// clientAddr returns the originating client address. It honors X-Forwarded-For
+// (set by the upstream reverse proxy, e.g. Caddy) and falls back to
+// r.RemoteAddr when the header is absent. The server is intended to run
+// behind a trusted proxy on localhost, so X-Forwarded-For from the wire is
+// not directly attacker-controllable.
+func clientAddr(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// X-Forwarded-For is "client, proxy1, proxy2, ..."; the first
+		// entry is the original client.
+		if i := strings.IndexByte(xff, ','); i >= 0 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return strings.TrimSpace(xff)
+	}
+	return r.RemoteAddr
+}
+
 func (s *server) logRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
@@ -41,11 +58,15 @@ func (s *server) logRequests(next http.Handler) http.Handler {
 		if s.accessLog != nil {
 			log = s.accessLog()
 		}
-		if loc := rec.Header().Get("Location"); loc != "" {
-			log.Info("request", "method", r.Method, "path", r.URL.Path, "status", rec.status, "location", loc)
-		} else {
-			log.Info("request", "method", r.Method, "path", r.URL.Path, "status", rec.status)
-		}
+		log.Info("request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", rec.status,
+			"location", rec.Header().Get("Location"),
+			"remote_addr", clientAddr(r),
+			"user_agent", r.UserAgent(),
+			"accept_encoding", r.Header.Get("Accept-Encoding"),
+		)
 	})
 }
 

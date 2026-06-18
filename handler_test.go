@@ -51,6 +51,33 @@ func get(t *testing.T, h http.Handler, path, acceptEncoding string) *httptest.Re
 	return rr
 }
 
+// --- clientAddr ---
+
+func TestClientAddr(t *testing.T) {
+	cases := []struct {
+		name       string
+		xff        string
+		remoteAddr string
+		want       string
+	}{
+		{"no XFF -> RemoteAddr", "", "192.0.2.1:1234", "192.0.2.1:1234"},
+		{"single XFF entry", "203.0.113.5", "192.0.2.1:1234", "203.0.113.5"},
+		{"chained XFF picks first", "203.0.113.5, 198.51.100.7", "192.0.2.1:1234", "203.0.113.5"},
+		{"chained XFF without spaces", "203.0.113.5,198.51.100.7", "192.0.2.1:1234", "203.0.113.5"},
+		{"XFF with surrounding spaces", "  203.0.113.5  ", "192.0.2.1:1234", "203.0.113.5"},
+	}
+	for _, c := range cases {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.RemoteAddr = c.remoteAddr
+		if c.xff != "" {
+			req.Header.Set("X-Forwarded-For", c.xff)
+		}
+		if got := clientAddr(req); got != c.want {
+			t.Errorf("%s: clientAddr = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
 // --- parseResourcePath ---
 
 func TestParsePath(t *testing.T) {

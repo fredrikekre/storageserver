@@ -61,6 +61,57 @@ func TestLogWriterReopenIsObservedByCallers(t *testing.T) {
 	}
 }
 
+// TestAccessLogFields verifies that each access-log line includes the
+// per-request metadata callers will want to grep on: method, path, status,
+// location, remote_addr, user_agent, accept_encoding.
+func TestAccessLogFields(t *testing.T) {
+	dir := t.TempDir()
+	logPath := filepath.Join(dir, "access.log")
+	lw, err := newLogWriter(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fake := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(fake.Close)
+
+	cfg := &Config{StorageBackends: []Backend{{URL: fake.URL}}}
+	st, err := newStorage(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := &server{cfg: cfg, storage: st, accessLog: lw.Logger}
+	h := srv.routes()
+
+	req := httptest.NewRequest(http.MethodGet, "/artifact/"+testHash, nil)
+	req.Header.Set("Accept-Encoding", "zstd")
+	req.Header.Set("User-Agent", "pkg-test/1.0")
+	req.Header.Set("X-Forwarded-For", "203.0.113.5, 198.51.100.7")
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	contents, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := string(contents)
+	for _, want := range []string{
+		"method=GET",
+		"path=/artifact/" + testHash,
+		"status=302",
+		"location=" + fake.URL + "/artifact/" + testHash + ".tar.zst",
+		"remote_addr=203.0.113.5",
+		"user_agent=pkg-test/1.0",
+		"accept_encoding=zstd",
+	} {
+		if !strings.Contains(line, want) {
+			t.Errorf("access log missing %q\nfull line: %s", want, line)
+		}
+	}
+}
+
 // TestAccessLogRotationVisibleToServer is the end-to-end version of the bug:
 // configure a server with a file-backed access log, serve a request, rotate,
 // serve another request, and verify the second access-log entry is in the
