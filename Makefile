@@ -16,17 +16,9 @@ $(BINARY): $(SOURCES)
 $(INSTALL): $(BINARY)
 	sudo install -m 0755 $(BINARY) $(INSTALL)
 
-# Install config only if not already present, so re-running `make install`
-# never silently overwrites the server-side config with whatever happens to
-# be in the working tree. Edit /etc/storageserver/config.toml in place to
-# update it.
 $(CONFIG): config.toml
 	sudo mkdir -p /etc/storageserver
-	@if [ -f $(CONFIG) ]; then \
-		echo "$(CONFIG) already exists; leaving it untouched"; \
-	else \
-		sudo cp $< $@; \
-	fi
+	sudo cp $< $@
 
 # Install Caddy config. Create a Caddyfile based on Caddyfile.example before running.
 $(CADDY): Caddyfile
