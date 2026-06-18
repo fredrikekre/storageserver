@@ -18,6 +18,7 @@ NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
+ReadWritePaths=/var/log/storageserver
 
 [Install]
 WantedBy=multi-user.target
