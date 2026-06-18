@@ -1,0 +1,23 @@
+[Unit]
+Description=Julia Storage Server
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=storageserver
+Group=storageserver
+# Add --debug to enable debug logging (cache hits, etc.)
+ExecStart=/usr/local/bin/storageserver --config /etc/storageserver/config.toml
+Restart=on-failure
+RestartSec=5s
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

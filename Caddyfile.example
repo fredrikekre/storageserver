@@ -1,0 +1,14 @@
+# With automatic TLS (production):
+storage.example.com {
+    reverse_proxy localhost:8080
+    log {
+        output file /var/log/caddy/access.log {
+            roll_keep_for 720h
+        }
+    }
+}
+
+# Without TLS (testing/development, or when TLS is handled upstream):
+# :8080 {
+#     reverse_proxy localhost:8080
+# }

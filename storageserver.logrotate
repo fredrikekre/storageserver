@@ -1,0 +1,13 @@
+/var/log/storageserver/storageserver.log
+/var/log/storageserver/access.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 storageserver storageserver
+    postrotate
+        systemctl kill --signal=USR1 storageserver
+    endscript
+}
