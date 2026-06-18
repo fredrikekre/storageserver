@@ -14,7 +14,7 @@ $(BINARY): $(SOURCES)
 	go build -o $(BINARY) .
 
 $(INSTALL): $(BINARY)
-	sudo cp $(BINARY) $(INSTALL)
+	sudo install -m 0755 $(BINARY) $(INSTALL)
 
 # Install config only if not already present, so re-running `make install`
 # never silently overwrites the server-side config with whatever happens to
