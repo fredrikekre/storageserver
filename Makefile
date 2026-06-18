@@ -18,7 +18,7 @@ up: check-prereqs setup-system $(INSTALL) $(CONFIG) $(CADDY) $(LOGCONF) $(SERVIC
 	@echo "Up to date."
 
 test:
-	go test ./...
+	go test .
 
 check-prereqs:
 	@command -v go    >/dev/null 2>&1 || { echo "error: 'go' not in PATH (install from https://go.dev/dl)" >&2; exit 1; }
