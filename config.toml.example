@@ -1,4 +1,4 @@
-server_addr = "[::]:8080"
+server_addr = "127.0.0.1:8080"
 log_file = "/var/log/storageserver/storageserver.log"
 access_log_file = "/var/log/storageserver/access.log"
 

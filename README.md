@@ -22,7 +22,7 @@ Without one, the server negotiates via `Accept-Encoding` (gzip default; zstd if 
 ## Configuration
 
 ```toml
-server_addr = "[::]:8080"
+server_addr = "127.0.0.1:8080"
 
 # Backends are checked in order; first match wins.
 # Use the full base URL — works for any S3-compatible storage.

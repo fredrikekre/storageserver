@@ -19,7 +19,7 @@ type Backend struct {
 }
 
 func loadConfig(path string) (*Config, error) {
-	cfg := &Config{ServerAddr: "[::]:8080"}
+	cfg := &Config{ServerAddr: "127.0.0.1:8080"}
 	if _, err := toml.DecodeFile(path, cfg); err != nil {
 		return nil, err
 	}
