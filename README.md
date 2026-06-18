@@ -48,20 +48,18 @@ GOOS=linux GOARCH=amd64 make storageserver   # Intel/AMD
 GOOS=linux GOARCH=arm64 make storageserver   # ARM
 ```
 
-**First-time install** (run on the server):
+**Install and deploy** (run on the server, idempotent):
 
 ```sh
 cp config.toml.example config.toml   # then edit config.toml
 cp Caddyfile.example Caddyfile       # then edit Caddyfile
-make install                         # creates user, installs binary, config, and service
-make caddy                           # installs Caddy config
+make up                              # build, install, reload/restart as needed
 ```
 
-**Deploy** (subsequent updates):
-
-```sh
-make deploy   # installs updated binary and restarts service
-```
+`make up` builds the binary, installs binary / config / Caddyfile / logrotate /
+systemd unit when their sources are newer than what's deployed, and reloads
+or restarts the relevant services. The same command handles both first-time
+install and subsequent updates. Requires `go` and `caddy` to be installed.
 
 **Run tests:**
 
@@ -71,7 +69,7 @@ make test
 
 ## TLS with Caddy
 
-Install Caddy, then run `make caddy` as described above. Caddy obtains and renews
-Let's Encrypt certificates automatically and redirects HTTP to HTTPS.
+`make up` installs the Caddy config and reloads Caddy. Caddy obtains and
+renews Let's Encrypt certificates automatically and redirects HTTP to HTTPS.
 
 See `Caddyfile.example` for configuration options.
