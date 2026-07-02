@@ -77,6 +77,8 @@ func (s *server) routes() http.Handler {
 	mux.HandleFunc("/package/", s.handleResource)
 	mux.HandleFunc("/artifact/", s.handleResource)
 	mux.HandleFunc("/registries", s.handleRegistries)
+	mux.HandleFunc("/registries.eager", s.handleRegistries)
+	mux.HandleFunc("/registries.conservative", s.handleRegistries)
 	mux.HandleFunc("/", s.handleRoot)
 	return s.logRequests(mux)
 }
@@ -262,7 +264,8 @@ func (s *server) handleRegistries(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	if url := s.storage.findURL(ctx, "registries", ""); url != "" {
+	key := strings.TrimLeft(r.URL.Path, "/")
+	if url := s.storage.findURL(ctx, key, ""); url != "" {
 		http.Redirect(w, r, url, http.StatusFound)
 		return
 	}

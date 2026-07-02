@@ -429,3 +429,17 @@ func TestRegistriesMissingReturns404(t *testing.T) {
 		t.Errorf("got %d, want 404", rr.Code)
 	}
 }
+
+func TestRegistriesFlavorsRedirect(t *testing.T) {
+	srv := makeServer(t, []string{"/registries.eager", "/registries.conservative"})
+	h := srv.routes()
+	for _, path := range []string{"/registries.eager", "/registries.conservative"} {
+		rr := get(t, h, path, "")
+		if rr.Code != http.StatusFound {
+			t.Errorf("GET %s: got %d, want 302", path, rr.Code)
+		}
+		if loc := rr.Header().Get("Location"); !strings.HasSuffix(loc, path) {
+			t.Errorf("GET %s: Location %q should end with %s", path, loc, path)
+		}
+	}
+}
