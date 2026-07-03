@@ -4,9 +4,15 @@ access_log_file = "/var/log/storageserver/access.log"
 
 # Backends are checked in order; first match wins.
 # Use the full base URL — works for any S3-compatible storage.
+#
+# A backend may optionally refuse to serve some resource paths via a "deny"
+# list of prefixes matched against the resource path (no leading slash, no
+# extension), e.g. "registries", "registry/", "package/", "artifact/". Denied
+# paths fall through to the next backend. Everything is served by default.
 
 [[storage_backends]]
 url = "https://pub-abc123.r2.dev"   # Cloudflare R2 public bucket
+deny = ["registries"]               # registry lists fall through to the next backend
 
 [[storage_backends]]
 url = "https://julialang-storage-us-east-1.s3.us-east-1.amazonaws.com"

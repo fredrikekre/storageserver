@@ -63,6 +63,30 @@ url = "https://example.org///"
 	}
 }
 
+func TestBackendAllows(t *testing.T) {
+	tests := []struct {
+		name    string
+		backend Backend
+		path    string
+		want    bool
+	}{
+		{"no rules allows all", Backend{}, "registries", true},
+		{"deny registries blocks list", Backend{Deny: []string{"registries"}}, "registries", false},
+		{"deny registries blocks eager flavor", Backend{Deny: []string{"registries"}}, "registries.eager", false},
+		{"deny registries blocks conservative flavor", Backend{Deny: []string{"registries"}}, "registries.conservative", false},
+		{"deny registries does not block registry resource", Backend{Deny: []string{"registries"}}, "registry/uuid/hash", true},
+		{"multiple deny prefixes", Backend{Deny: []string{"package/", "registries"}}, "package/uuid/hash", false},
+		{"deny with leading slash matches nothing", Backend{Deny: []string{"/registries"}}, "registries", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.backend.allows(tt.path); got != tt.want {
+				t.Errorf("allows(%q) = %v, want %v", tt.path, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoadConfigEmptyBackendURL(t *testing.T) {
 	path := writeConfig(t, `
 [[storage_backends]]

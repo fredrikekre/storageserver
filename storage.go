@@ -60,6 +60,9 @@ func (st *Storage) checkExists(ctx context.Context, url string) bool {
 // findURL returns the URL of the first backend that has resourcePath+ext, or "".
 func (st *Storage) findURL(ctx context.Context, resourcePath, ext string) string {
 	for _, b := range st.backends {
+		if !b.allows(resourcePath) {
+			continue
+		}
 		url := buildURL(b, resourcePath, ext)
 		if st.checkExists(ctx, url) {
 			return url

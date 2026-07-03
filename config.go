@@ -15,7 +15,22 @@ type Config struct {
 }
 
 type Backend struct {
-	URL string `toml:"url"`
+	URL  string   `toml:"url"`
+	Deny []string `toml:"deny"`
+}
+
+// allows reports whether resourcePath may be served from this backend.
+// Everything is allowed by default; a match against any Deny prefix excludes
+// it. Prefixes are matched as raw strings against the resource path, which has
+// no leading slash and no extension (e.g. "registries", "registry/", "package/",
+// "artifact/").
+func (b Backend) allows(resourcePath string) bool {
+	for _, p := range b.Deny {
+		if strings.HasPrefix(resourcePath, p) {
+			return false
+		}
+	}
+	return true
 }
 
 func loadConfig(path string) (*Config, error) {
